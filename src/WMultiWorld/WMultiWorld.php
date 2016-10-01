@@ -110,6 +110,7 @@ class WMultiWorld extends PluginBase implements Listener
 			$event->setCancelled(true);
 			return true;
 		}
+		
 		$msg=$event->getMessage();
 		foreach($tplist as $a=>$b)
 		{
