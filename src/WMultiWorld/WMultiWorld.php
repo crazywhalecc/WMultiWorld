@@ -12,8 +12,6 @@ use pocketmine\level\Level;
 use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\event\player\PlayerItemHeldEvent;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
-use pocketmine\event\player\PlayerCommandPreprocessEvent;
-
 use pocketmine\math\Vector3;
 use WMultiWorld\CallBackTask;
 use pocketmine\level\Position;
@@ -48,6 +46,7 @@ class WMultiWorld extends PluginBase implements Listener
 		"protect-msg" => "§c对不起，这个世界被保护了！",
 		"banpvp-world" => array(),
 		"op-pvp" => "false",
+		"world-create" => array(),
 		"whitelist-world" => array(),
 		"wl-list" => array(),
 		"pvp-msg" => "§e=====玩家信息=====%n§aID: {name}%n§b金钱: {money}%n§b饥饿值: {food}%n§b血量: [{hp}/{mhp}]%n§b权限: {isop}"
@@ -110,7 +109,6 @@ class WMultiWorld extends PluginBase implements Listener
 			$event->setCancelled(true);
 			return true;
 		}
-		
 		$msg=$event->getMessage();
 		foreach($tplist as $a=>$b)
 		{
@@ -189,6 +187,33 @@ class WMultiWorld extends PluginBase implements Listener
 								$sender->sendMessage("§c[WMultiWorld] 用法： /setworld unload [地图名]");
 							}
 							return true;
+						case "gm":
+							if(isset($args[1]))
+							{
+								$worldname=$args[1];
+								$database=$this->config->get("world-create");
+								if(in_array($worldname,$database))
+								{
+									$inv=array_search($worldname,$database);
+									$inv=array_splice($database,$inv,1);
+									$this->config->set("world-create",$database);
+									$this->config->save();
+									$sender->sendMessage("§a[WMultiWorld] 成功将世界 $worldname 从创造地图列表删除！");
+									return true;
+								}else
+								{
+									$database[]=$worldname;
+									$this->config->set("world-create",$database);
+									$this->config->save();
+									$sender->sendMessage("§a[WMultiWorld] 成功将世界 $worldname 加入创造地图列表！");
+									return true;
+								}
+							}
+							else
+							{
+								$sender->sendMessage("§c[WMultiWorld] 用法： /setworld gm <地图名>: 将地图设置为创造模式或者生存模式");
+							    return true;
+							}
 						case "wl":
 							if(isset($args[1]))
 							{
@@ -689,6 +714,34 @@ class WMultiWorld extends PluginBase implements Listener
 				$this->tickreset=$this->getServer()->getScheduler()->scheduleDelayedTask(new CallbackTask([$this,"NoEnter"]),2);
 			
 				$event->getEntity()->sendMessage(str_replace("{world}",$lv,$list[$lv]["ban-msg"]));
+			}
+		}
+		if($event->isCancelled())
+		{
+			return;
+		}
+		if(in_array($lv,$this->config->get("world-create")))
+		{
+			$ent=$event->getEntity();
+			if($ent instanceof Player)
+			{
+				$ent->setGamemode(1);
+				$ent->sendTip("§a你已经切换为创造模式！");
+			}
+		}
+		else
+		{
+			$ent=$event->getEntity();
+			if($ent instanceof Player)
+			{
+				if($or=$ent->getGamemode() == 0)
+					return;
+				else
+				{
+					$ent->setGamemode(0);
+					$ent->sendTip("§b你已经切换为生存模式！");
+				}
+				
 			}
 		}
 	}
