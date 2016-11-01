@@ -1,11 +1,12 @@
 ﻿name: WMultiWorld
 main: WMultiWorld\WMultiWorld
-version: 1.0.6
+version: 1.0.8
 api: 
 - 1.0.0
 - 1.10.0
 - 2.0.0
 author: Whale
+load: POSTWORLD
 
 commands:
  w:
