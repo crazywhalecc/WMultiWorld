@@ -36,7 +36,7 @@ class WMultiWorld extends PluginBase implements Listener
 		Generator::addGenerator(WoodFlat::class, "woodflat");
 		$this->config=new Config($this->getDataFolder()."config.yml",Config::YAML,array(
 		"manager" => array(),
-		"tp-msg" => "§b[WMultiWorld] 你被传送到了世界 {world}",
+/		"tp-msg" => "§b[WMultiWorld] 你被传送到了世界 {world}",
 		"noexist-msg" => "§b[WMultiWorld] 对不起，世界 {world} 不存在！",
 		"noname-msg" => "§b[WMultiWorld] 请输入一个地图名",
 		"notplayer-msg" => "§b[WMultiWorld] 请在游戏内输入传送指令！",
@@ -46,7 +46,7 @@ class WMultiWorld extends PluginBase implements Listener
 		"protect-msg" => "§c对不起，这个世界被保护了！",
 		"banpvp-world" => array(),
 		"op-pvp" => "false",
-		"world-create" => array(),
+/		"world-create" => array(),
 		"whitelist-world" => array(),
 		"wl-list" => array(),
 		"pvp-msg" => "§e=====玩家信息=====%n§aID: {name}%n§b金钱: {money}%n§b饥饿值: {food}%n§b血量: [{hp}/{mhp}]%n§b权限: {isop}"
@@ -78,7 +78,7 @@ class WMultiWorld extends PluginBase implements Listener
                 if (!$this->getServer()->isLevelLoaded($dirfile))
                 {  //如果这个世界未加载
                     $this->getLogger()->info("正在加载世界：$dirfile");
-                    $this->getServer()->generateLevel($dirfile);
+                    //$this->getServer()->generateLevel($dirfile);
                     $this->getServer()->loadLevel($dirfile);
                     $level = $this->getServer()->getLevelbyName($dirfile);
                     if ($level->getName() != $dirfile) 
