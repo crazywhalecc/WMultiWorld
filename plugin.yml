@@ -1,6 +1,6 @@
-﻿name: WMultiWorld
+name: WMultiWorld
 main: WMultiWorld\WMultiWorld
-version: 1.0.8
+version: 1.0.9
 api: 
 - 1.0.0
 - 1.10.0
