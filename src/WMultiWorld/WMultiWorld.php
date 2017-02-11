@@ -17,6 +17,7 @@ use WMultiWorld\CallBackTask;
 use pocketmine\level\Position;
 use pocketmine\event\entity\EntityLevelChangeEvent;
 use pocketmine\event\entity\EntityDamageEvent;
+use pocketmine\event\entity\EntityTeleportEvent;
 use pocketmine\event\block\BlockPlaceEvent;
 use pocketmine\event\block\BlockBreakEvent;
 use onebone\economyapi\EconomyAPI;
@@ -36,7 +37,7 @@ class WMultiWorld extends PluginBase implements Listener
 		Generator::addGenerator(WoodFlat::class, "woodflat");
 		$this->config=new Config($this->getDataFolder()."config.yml",Config::YAML,array(
 		"manager" => array(),
-/		"tp-msg" => "§b[WMultiWorld] 你被传送到了世界 {world}",
+		"tp-msg" => "§b[WMultiWorld] 你被传送到了世界 {world}",
 		"noexist-msg" => "§b[WMultiWorld] 对不起，世界 {world} 不存在！",
 		"noname-msg" => "§b[WMultiWorld] 请输入一个地图名",
 		"notplayer-msg" => "§b[WMultiWorld] 请在游戏内输入传送指令！",
@@ -46,7 +47,7 @@ class WMultiWorld extends PluginBase implements Listener
 		"protect-msg" => "§c对不起，这个世界被保护了！",
 		"banpvp-world" => array(),
 		"op-pvp" => "false",
-/		"world-create" => array(),
+		"world-create" => array(),
 		"whitelist-world" => array(),
 		"wl-list" => array(),
 		"pvp-msg" => "§e=====玩家信息=====%n§aID: {name}%n§b金钱: {money}%n§b饥饿值: {food}%n§b血量: [{hp}/{mhp}]%n§b权限: {isop}"
@@ -699,23 +700,28 @@ class WMultiWorld extends PluginBase implements Listener
 	{
 		return Generator::getGeneratorList();
 	}
+	public function onTeleport(EntityTeleportEvent $event)
+	{
+		if($event->getEntity() instanceof Player)
+		{
+			$player=$event->getEntity();
+			$target=$event->getTo();
+			$level=$target->level->getFolderName();
+			$list=$this->config->get("whitelist-world");
+			if(isset($list[$level]["player"]))
+			{
+				$player=strtolower($event->getEntity()->getName());
+				if((!in_array($player,$list[$level]["player"])) && (!$event->getEntity()->isOp()))
+				{
+					$event->setCancelled(true);
+					$event->getEntity()->sendMessage(str_replace("{world}",$lv,$list[$lv]["ban-msg"]));
+				}
+			}
+		}
+	}
 	public function changeLevel(EntityLevelChangeEvent $event)//禁止进入世界飞行的功能（世界切换事件）
 	{
 		$lv=$event->getTarget()->getFolderName();
-		$list=$this->config->get("whitelist-world");
-		if(isset($list[$lv]["player"]))
-		{
-			
-			$player=strtolower($event->getEntity()->getName());
-			if((!in_array($player,$list[$lv]["player"])) && (!$event->getEntity()->isOp()))
-			{
-				$event->setCancelled(true);
-				$this->banlevel=$event->getOrigin();$this->plus=$event->getEntity();
-				$this->tickreset=$this->getServer()->getScheduler()->scheduleDelayedTask(new CallbackTask([$this,"NoEnter"]),2);
-			
-				$event->getEntity()->sendMessage(str_replace("{world}",$lv,$list[$lv]["ban-msg"]));
-			}
-		}
 		if($event->isCancelled())
 		{
 			return;
