@@ -11,6 +11,7 @@ use pocketmine\utils\Config;
 use pocketmine\level\Level;
 use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\event\player\PlayerItemHeldEvent;
+use pocketmine\event\player\PlayerGameModeChangeEvent;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\math\Vector3;
 use WMultiWorld\CallBackTask;
@@ -47,7 +48,7 @@ class WMultiWorld extends PluginBase implements Listener
 		"protect-msg" => "§c对不起，这个世界被保护了！",
 		"banpvp-world" => array(),
 		"op-pvp" => "false",
-		"world-create" => array(),
+		"lock-gm-world" => array(),
 		"whitelist-world" => array(),
 		"wl-list" => array(),
 		"pvp-msg" => "§e=====玩家信息=====%n§aID: {name}%n§b金钱: {money}%n§b饥饿值: {food}%n§b血量: [{hp}/{mhp}]%n§b权限: {isop}"
@@ -63,6 +64,7 @@ class WMultiWorld extends PluginBase implements Listener
 		));
         $this->getServer()->getLogger()->info("§aWhale的多世界！");
         $this->LoadAllLevels();
+		$this->mainHelp="§6=====地图配置选项=====\n§a/setworld load [地图名]: §b加载已安装的地图\n§a/setworld unload [地图名]: §b卸载一个已加载的地图\n§a/setworld wl: §b添加或删除一个世界的白名单\n§a/setworld chat [地图名]: §b设置一个快速传送指令\n§a/setworld delmap [地图名]: §b删除一个地图的存档\n§a/setworld protect [地图名]: §b添加或删除一个保护的世界\n§a/setworld pvp oppvp: §b设置op在禁止PVP的世界的权限\n§a/setworld lockgm: §b锁定一个地图的游戏模式\n§a/setworld dellockgm: §b取消锁定一个地图的游戏模式\n§a/setworld pvp world: §b设置禁止PVP的世界\n§a/setworld admin: §b设置多世界管理员( 仅限后台)\n§a/setworld setwl: §b添加或删除世界白名单的玩家";
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
     }
     public function LoadAllLevels() 
@@ -79,7 +81,7 @@ class WMultiWorld extends PluginBase implements Listener
                 if (!$this->getServer()->isLevelLoaded($dirfile))
                 {  //如果这个世界未加载
                     $this->getLogger()->info("正在加载世界：$dirfile");
-                    //$this->getServer()->generateLevel($dirfile);
+                    //$this->getServer()->generateLevel($dirfile);//如果你的服务器是0.16以下的话，最好加上这句~
                     $this->getServer()->loadLevel($dirfile);
                     $level = $this->getServer()->getLevelbyName($dirfile);
                     if ($level->getName() != $dirfile) 
@@ -188,32 +190,49 @@ class WMultiWorld extends PluginBase implements Listener
 								$sender->sendMessage("§c[WMultiWorld] 用法： /setworld unload [地图名]");
 							}
 							return true;
-						case "gm":
-							if(isset($args[1]))
+						case "lockgm":
+							if(isset($args[1]) && isset($args[2]))
 							{
 								$worldname=$args[1];
-								$database=$this->config->get("world-create");
-								if(in_array($worldname,$database))
+								$gm=$args[2];
+								if(!is_numeric($gm))
 								{
-									$inv=array_search($worldname,$database);
-									$inv=array_splice($database,$inv,1);
-									$this->config->set("world-create",$database);
-									$this->config->save();
-									$sender->sendMessage("§a[WMultiWorld] 成功将世界 $worldname 从创造地图列表删除！");
-									return true;
-								}else
-								{
-									$database[]=$worldname;
-									$this->config->set("world-create",$database);
-									$this->config->save();
-									$sender->sendMessage("§a[WMultiWorld] 成功将世界 $worldname 加入创造地图列表！");
+									$sender->sendMessage("§e[WMultiWorld] 游戏模式请输入数字！");
 									return true;
 								}
+								$list=$this->config->get("lock-gm-world");
+								$list[$worldname]=$gm;
+								$this->config->set("lock-gm-world",$list);
+								$this->config->save();
+								$gms=($gm == 0 ? "生存模式" : "创造模式");
+								$sender->sendMessage("§a[WMultiWorld] 成功设置锁定世界 $worldname 的游戏模式为 $gms !");
+								return true;
 							}
 							else
 							{
-								$sender->sendMessage("§c[WMultiWorld] 用法： /setworld gm <地图名>: 将地图设置为创造模式或者生存模式");
-							    return true;
+								$sender->sendMessage("§e[用法] /setworld lockgm <地图名> <0/1>");
+								return true;
+							}
+						case "dellockgm":
+							if(isset($args[1]))
+							{
+								$worldname=$args[1];
+								$list=$this->config->get("lock-gm-world");
+								if(!isset($list[$worldname]))
+								{
+									$sender->sendMessage("§c[WMultiWorld] 对不起，这个世界还没有锁定游戏模式！");
+									return true;
+								}
+								unset($list[$worldname]);
+								$this->config->set("lock-gm-world",$list);
+								$this->config->save();
+								$sender->sendMessage("§a[WMultiWorld] 成功取消锁定世界 $worldname 的游戏模式!");
+								return true;
+							}
+							else
+							{
+								$sender->sendMessage("§e[用法] /setworld dellockgm <地图名>");
+								return true;
 							}
 						case "wl":
 							if(isset($args[1]))
@@ -267,7 +286,7 @@ class WMultiWorld extends PluginBase implements Listener
 								elseif (is_dir($path.$l))
 								{
 									$sender->sendMessage("§b[WMultiWorld] 正在加载地图 ".$args[1]."." );
-									$this->getServer()->generateLevel($l);
+									//$this->getServer()->generateLevel($l);
 									$ok = $this->getServer()->loadLevel($l);
 									if ($ok === false) 
 									{
@@ -477,11 +496,14 @@ class WMultiWorld extends PluginBase implements Listener
 							}
 							else{$sender->sendMessage("§c[WMultiWorld] 用法: /setworld admin [玩家ID]");return true;
 							}
+						default:
+							$sender->sendMessage($this->mainHelp);
+							return true;
 					}
 				}
 				else
 				{
-					$sender->sendMessage("§6=====地图配置选项=====\n§a/setworld load [地图名]: §b加载已安装的地图\n§a/setworld unload [地图名]: §b卸载一个已加载的地图\n§a/setworld wl: §b添加或删除一个世界的白名单\n§a/setworld chat [地图名]: §b设置一个快速传送指令\n§a/setworld delmap [地图名]: §b删除一个地图的存档\n§a/setworld protect [地图名]: §b添加或删除一个保护的世界\n§a/setworld pvp oppvp: §b设置op在禁止PVP的世界的权限\n§a/setworld pvp world: §b设置禁止PVP的世界\n§a/setworld admin: §b设置多世界管理员( 仅限后台)\n§a/setworld setwl: §b添加或删除世界白名单的玩家");
+					$sender->sendMessage($this->mainHelp);
 					return true;
 				}
      		case "lw":
@@ -717,9 +739,21 @@ class WMultiWorld extends PluginBase implements Listener
 					$event->getEntity()->sendMessage(str_replace("{world}",$lv,$list[$lv]["ban-msg"]));
 				}
 			}
+			$gmlist=$this->config->get("lock-gm-world");
+			//if(!in_array($name,$this->config->get("admin")))//这句是使用独立的管理员列表来限制切换游戏模式，如需使用请把下面一行的if打成注释，然后把这行的注释删掉即可
+			if(!$player->isOp())//这句是使用系统op的列表来限制切换游戏模式，如需使用独立管理员模式请把这行删掉或打成注释，上面那行的注释删掉即可！
+			{
+				if(isset($gmlist[$level]))
+				{
+					if($player->getGamemode() != $gmlist[$level])
+					{
+						$player->setGamemode($gmlist[$level],true);
+					}
+				}
+			}
 		}
 	}
-	public function changeLevel(EntityLevelChangeEvent $event)//禁止进入世界飞行的功能（世界切换事件）
+	/*public function changeLevel(EntityLevelChangeEvent $event)//禁止进入世界飞行的功能（世界切换事件）
 	{
 		$lv=$event->getTarget()->getFolderName();
 		if($event->isCancelled())
@@ -750,7 +784,7 @@ class WMultiWorld extends PluginBase implements Listener
 				
 			}
 		}
-	}
+	}*/
 	public function playerblockBreak(BlockBreakEvent $event) {$this->checkPerm($event);}
 	public function PlayerPlaceBlock(BlockPlaceEvent $event) {$this->checkPerm($event);}
 	public function playerinteract(PlayerInteractEvent $event){$player = $event->getPlayer();$user = $player->getName();$itemid = $event->getItem()->getID();$itemtouch = $this->config->get("item-touch");if(in_array($itemid,$itemtouch)){$this->checkPerm($event);}}
@@ -766,6 +800,26 @@ class WMultiWorld extends PluginBase implements Listener
 		{
 			$player->sendTip($msg);
 			$event->setCancelled(true);
+		}
+	}
+	public function onChange(PlayerGameModeChangeEvent $event)
+	{
+		$player=$event->getPlayer();
+		$name=$player->getName();
+		$level=$player->level->getFolderName();
+		$gm=$event->getNewGamemode();
+		//if(!in_array($name,$this->config->get("admin")))//这句是使用独立的管理员列表来限制切换游戏模式，如需使用请把下面一行的if打成注释，然后把这行的注释删掉即可
+		if(!$player->isOp())//这句是使用系统op的列表来限制切换游戏模式，如需使用独立管理员模式请把这行删掉或打成注释，上面那行的注释删掉即可！
+		{
+			$list=$this->config->get("lock-gm-world");
+			if(isset($list[$level]))
+			{
+				if($gm != $list[$level])
+				{
+					$event->setCancelled(true);
+					$player->sendMessage("§c对不起，这个世界禁止切换游戏模式！");;
+				}
+			}
 		}
 	}
 	public function checkPvP($eventp)
