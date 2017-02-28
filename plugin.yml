@@ -1,10 +1,14 @@
 name: WMultiWorld
 main: WMultiWorld\WMultiWorld
-version: 1.0.9
+version: 1.1.0
 api: 
 - 1.0.0
 - 1.10.0
 - 2.0.0
+- 3.0.0
+- 3.0.0-ALPHA1
+- 3.0.0-ALPHA2
+- 3.0.0-ALPHA3
 author: Whale
 load: POSTWORLD
 
@@ -14,20 +18,11 @@ commands:
  lw:
   description: §6查看世界列表
  makemap:
-  permission: World.unload
+  permission: wmw.command.op
   description: §6新地图生成器
  setworld:
-  permission: World.unload
+  permission: wmw.command.op
   description: §6多世界其他功能
 permissions:
- World:
+ wmw.command.op:
   default: op
-  description: SWorld permission
-  children:
-     World.load:
-      default: op
-      description: load a world
-     World.unload:
-      default: op
-      description: unload a world
-    
